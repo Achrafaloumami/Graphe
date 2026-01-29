@@ -16,13 +16,13 @@ G = nx.Graph() # Création du graphe vide
 nb_nodes = len(lignes)
 for i in range(nb_nodes):
    li = (lignes[i].split(','))[1:]
-   p = list(map(float, li)) # Conversion des coordonnées en float
+   p = np.array(list((map(float, li)))) # Conversion des coordonnées en float
    G.add_node(i, pos=p)
 
 
 
 
-d_max = 60000 # Distance maximale de connexion entre deux nœuds
+d_max = 20000 # Distance maximale de connexion entre deux nœuds
 
 # Création du graphe
 
@@ -33,8 +33,9 @@ d_max = 60000 # Distance maximale de connexion entre deux nœuds
 for i in range(nb_nodes):
     for j in range(i+1, nb_nodes):
         
-        d = np.linalg.norm(np.array(G.nodes[i]['pos']) - np.array(G.nodes[j]['pos'])) # Calcul de la distance euclidienne entre les nœuds i et j
+        d = np.linalg.norm(G.nodes[i]['pos'] - G.nodes[j]['pos']) # Calcul de la distance euclidienne entre les nœuds i et j
         if d <= d_max:
+            d = d**2
             G.add_edge(i, j, weight=d) # Ajout de l'arête si la distance est inférieure à d_max
 
 print("Nombre de nœuds :", G.number_of_nodes())
@@ -57,9 +58,7 @@ for i in G.nodes():
     xs.append(pos[i][0])
     ys.append(pos[i][1])
     zs.append(pos[i][2])
-# xs = [pos[i][0] for i in G.nodes()]
-# ys = [pos[i][1] for i in G.nodes()]
-# zs = [pos[i][2] for i in G.nodes()]
+
 ax.scatter(xs, ys, zs, color='red') # Tracé des nœuds
 
 # Arêtes
@@ -85,7 +84,7 @@ nx.draw(G, pos=nx.circular_layout(G), node_color='r', edge_color='b')
 
 
 # calcul du degré moyen
-degrees = [val for (node, val) in G.degree()]
+degrees = [val for ( _ , val) in G.degree()]
 avg_degree = sum(degrees) / nb_nodes
 print("Degré moyen du graphe :", avg_degree)
 
@@ -98,7 +97,7 @@ plt.show()
 
 # calcul du moyen de degre de clusterisation
 clustering_coeffs = nx.clustering(G)
-avg_clustering_coeff = sum(clustering_coeffs.values()) / nb_nodes
+avg_clustering_coeff = nx.average_clustering(G) #sum(clustering_coeffs.values()) / nb_nodes
 print("Coefficient de clustering moyen du graphe :", avg_clustering_coeff)
 
 # distribution des coefficients de clustering
@@ -124,16 +123,6 @@ print("Ordres des composantes connexes :", connected_component_orders)
 
 
 
-
-
-
-
-
-
-
-
-
-
 # distrbution des plus courts chemins
 path_lengths = dict(nx.all_pairs_shortest_path_length(G))
 lengths = []
@@ -141,6 +130,7 @@ for source in path_lengths:
     for target in path_lengths[source]:
         if source != target:
             lengths.append(path_lengths[source][target])
+
 plt.hist(lengths, bins=10, rwidth=0.8)
 plt.xlabel('Longueur des plus courts chemins')
 plt.ylabel('Nombre de paires de nœuds')
@@ -150,3 +140,4 @@ plt.show()
 
 
 
+distances = dict(nx.all_pairs_dijkstra_path_length(G, weight='weight'))
