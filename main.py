@@ -22,7 +22,7 @@ for i in range(nb_nodes):
 
 
 
-d_max = 20000 # Distance maximale de connexion entre deux nœuds
+d_max = 60000 # Distance maximale de connexion entre deux nœuds
 
 # Création du graphe
 
@@ -123,7 +123,8 @@ print("Ordres des composantes connexes :", connected_component_orders)
 
 
 
-# distrbution des plus courts chemins
+
+# longeur des chemins les plus courts entre toutes les paires de nœuds connectés
 path_lengths = dict(nx.all_pairs_shortest_path_length(G))
 lengths = []
 for source in path_lengths:
@@ -131,6 +132,9 @@ for source in path_lengths:
         if source != target:
             lengths.append(path_lengths[source][target])
 
+print("Longueurs des plus courts chemins entre toutes les paires de nœuds connectés :", lengths)
+
+# distribution des plus courts chemins
 plt.hist(lengths, bins=10, rwidth=0.8)
 plt.xlabel('Longueur des plus courts chemins')
 plt.ylabel('Nombre de paires de nœuds')
@@ -138,6 +142,76 @@ plt.title('Histogramme des longueurs des plus courts chemins entre les paires de
 plt.show()
 
 
+# distrbution du nombre de plus courts chemins
 
 
-distances = dict(nx.all_pairs_dijkstra_path_length(G, weight='weight'))
+
+# # distrbution des plus courts chemins
+# path_lengths = dict(nx.all_pairs_shortest_path_length(G))
+# lengths = []
+# for source in path_lengths:
+#     for target in path_lengths[source]:
+#         if source != target:
+#             lengths.append(path_lengths[source][target])
+
+# plt.hist(lengths, bins=10, rwidth=0.8)
+# plt.xlabel('Longueur des plus courts chemins')
+# plt.ylabel('Nombre de paires de nœuds')
+# plt.title('Histogramme des longueurs des plus courts chemins entre les paires de nœuds')
+# plt.show()
+
+
+
+
+# distances = dict(nx.all_pairs_dijkstra_path_length(G, weight='weight'))
+
+
+
+
+
+
+# Partie 3:
+
+
+# creer un graphe pondéré par la distance euclidienne au carré entre les nœuds connectés pour un d_max de 60000
+
+fig = plt.figure() # Création de la figure
+
+ax = fig.add_subplot(111, projection='3d') # Création du subplot 3D
+
+pos = nx.get_node_attributes(G, 'pos') # Récupération des positions des nœuds
+
+# Nœuds
+xs = []
+ys = []
+zs = []
+for i in G.nodes():
+    xs.append(pos[i][0])
+    ys.append(pos[i][1])
+    zs.append(pos[i][2])
+
+ax.scatter(xs, ys, zs, color='red') # Tracé des nœuds
+
+# Arêtes
+for i, j in G.edges():
+    x = [pos[i][0], pos[j][0]]
+    y = [pos[i][1], pos[j][1]]
+    z = [pos[i][2], pos[j][2]]
+    ax.plot(x, y, z, color='blue') # Tracé des arêtes
+
+# pondération des arêtes par la distance euclidienne au carré
+for i, j in G.edges():
+    d = np.linalg.norm(G.nodes[i]['pos'] - G.nodes[j]['pos']) # Calcul de la distance euclidienne entre les nœuds i et j
+    d = d**2
+    G[i][j]['weight'] = d
+
+
+plt.show() # Affichage du graphe 3D
+
+
+
+
+
+
+
+
