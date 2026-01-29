@@ -152,6 +152,7 @@ print("Ordres des composantes connexes du graphe pondéré :", connected_compone
 
 # longeur des chemins les plus courts entre toutes les paires de nœuds
 lengths_weighted = resultat_weighted['weighted_shortest_path_lengths']
+lengths_weighted = [float(length) for length in lengths_weighted]
 print("Longueurs des plus courts chemins entre toutes les paires de nœuds connectés du graphe pondéré :", lengths_weighted)
 
 
