@@ -1,169 +1,93 @@
-
-import networkx as nx
-
 import numpy as np
-
 import matplotlib.pyplot as plt
+import networkx as nx
 from mpl_toolkits.mplot3d import Axes3D
 
-
-# Lecture du fichier CSV et création des nœuds
-f = open('assets/topology_high.csv', 'r')
-lignes = f.readlines()  # Retourne une liste de lignes
-f.close()
-lignes = lignes[1:]  # Suppression de la première ligne (en-têtes)
-G = nx.Graph() # Création du graphe vide
-nb_nodes = len(lignes)
-for i in range(nb_nodes):
-   li = (lignes[i].split(','))[1:]
-   p = np.array(list((map(float, li)))) # Conversion des coordonnées en float
-   G.add_node(i, pos=p)
+from utils import calcul_resultat, read_positions, build_graph, plot_graph_3d
 
 
+# Partie 1:
+
+
+# Lecture du fichier CSV
+positions = read_positions('assets/topology_high.csv')
 
 
 d_max = 60000 # Distance maximale de connexion entre deux nœuds
 
 # Création du graphe
-
-
-
-    
 # Ajout des arêtes selon la distance
-for i in range(nb_nodes):
-    for j in range(i+1, nb_nodes):
-        
-        d = np.linalg.norm(G.nodes[i]['pos'] - G.nodes[j]['pos']) # Calcul de la distance euclidienne entre les nœuds i et j
-        if d <= d_max:
-            d = d**2
-            G.add_edge(i, j, weight=d) # Ajout de l'arête si la distance est inférieure à d_max
+G = build_graph(positions, d_max, is_weighted=False)
 
 print("Nombre de nœuds :", G.number_of_nodes())
 print("Nombre d'arêtes :", G.number_of_edges())
 
+# fig = plt.figure() # Création de la figure
+# ax = fig.add_subplot(111, projection='3d') # Création du subplot 3D
 
-
-fig = plt.figure() # Création de la figure
-
-
-ax = fig.add_subplot(111, projection='3d') # Création du subplot 3D
-
-pos = nx.get_node_attributes(G, 'pos') # Récupération des positions des nœuds
-
-# Nœuds
-xs = []
-ys = []
-zs = []
-for i in G.nodes():
-    xs.append(pos[i][0])
-    ys.append(pos[i][1])
-    zs.append(pos[i][2])
-
-ax.scatter(xs, ys, zs, color='red') # Tracé des nœuds
-
-# Arêtes
-for i, j in G.edges():
-    x = [pos[i][0], pos[j][0]]
-    y = [pos[i][1], pos[j][1]]
-    z = [pos[i][2], pos[j][2]]
-    ax.plot(x, y, z, color='blue') # Tracé des arêtes
-
-
+plot_graph_3d(G)
 plt.show() # Affichage du graphe 3D
 
 
-"""
+# Partie 2:
 
-G = nx.cubical_graph()
-subax1 = plt.subplot(121)
-nx.draw(G)   # default spring_layout
-subax2 = plt.subplot(122)
-nx.draw(G, pos=nx.circular_layout(G), node_color='r', edge_color='b')
+# recupération des métriques du graphe non pondéré
+resultat = calcul_resultat(G, is_weighted=False)
 
-"""
+# Créer une figure avec 4 subplots (2 lignes, 2 colonnes)
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
-
-# calcul du degré moyen
-degrees = [val for ( _ , val) in G.degree()]
-avg_degree = sum(degrees) / nb_nodes
+# 1. Histogramme des degrés
+degrees = resultat['degrees']
+avg_degree = resultat['avg_degree']
 print("Degré moyen du graphe :", avg_degree)
 
-# traçage de l'histogramme des degrés
-plt.hist(degrees, bins=range(max(degrees)+2), align='left', rwidth=0.8)
-plt.xlabel('Degré')
-plt.ylabel('Nombre de nœuds')
-plt.title('Histogramme des degrés des nœuds')
-plt.show()
+axes[0, 0].hist(degrees, bins=range(max(degrees)+2), align='left', rwidth=0.8)
+axes[0, 0].set_xlabel('Degré')
+axes[0, 0].set_ylabel('Nombre de nœuds')
+axes[0, 0].set_title('Histogramme des degrés des nœuds')
 
-# calcul du moyen de degre de clusterisation
-clustering_coeffs = nx.clustering(G)
-avg_clustering_coeff = nx.average_clustering(G) #sum(clustering_coeffs.values()) / nb_nodes
+# 2. Histogramme des coefficients de clustering
+clustering_coeffs = resultat['clustering']
+avg_clustering_coeff = resultat['avg_clustering']
 print("Coefficient de clustering moyen du graphe :", avg_clustering_coeff)
 
-# distribution des coefficients de clustering
-plt.hist(list(clustering_coeffs.values()), bins=10, rwidth=0.8)
-plt.xlabel('Coefficient de clustering')
-plt.ylabel('Nombre de nœuds')
-plt.title('Histogramme des coefficients de clustering des nœuds')
-plt.show()
+axes[0, 1].hist(list(clustering_coeffs.values()), bins=10, rwidth=0.8)
+axes[0, 1].set_xlabel('Coefficient de clustering')
+axes[0, 1].set_ylabel('Nombre de nœuds')
+axes[0, 1].set_title('Histogramme des coefficients de clustering des nœuds')
 
-# calcul du nombre des cliques et leur ordre
-cliques = list(nx.find_cliques(G))
+# 3. Infos sur les cliques et composantes connexes
+cliques = resultat['cliques']
 num_cliques = len(cliques)
 clique_orders = [len(clique) for clique in cliques]
 print("Nombre de cliques dans le graphe :", num_cliques)
 print("Ordres des cliques :", clique_orders)
 
-# nombre des composantes connexes et leur ordre
-connected_components = list(nx.connected_components(G))
+connected_components = resultat['connected_components']
 num_connected_components = len(connected_components)
 connected_component_orders = [len(component) for component in connected_components]
 print("Nombre de composantes connexes dans le graphe :", num_connected_components)
 print("Ordres des composantes connexes :", connected_component_orders)
 
+info_text = f"Nombre de cliques : {num_cliques}\nNombre de composantes : {num_connected_components}\nOrdres composantes : {connected_component_orders}"
+axes[1, 0].text(0.1, 0.5, info_text, fontsize=10, verticalalignment='center', family='monospace')
+axes[1, 0].axis('off')
+axes[1, 0].set_title('Cliques et Composantes connexes')
 
-
-
-# longeur des chemins les plus courts entre toutes les paires de nœuds connectés
-path_lengths = dict(nx.all_pairs_shortest_path_length(G))
-lengths = []
-for source in path_lengths:
-    for target in path_lengths[source]:
-        if source != target:
-            lengths.append(path_lengths[source][target])
-
+# 4. Histogramme des longueurs des plus courts chemins
+lengths = resultat['unweighted_shortest_path_lengths']
 print("Longueurs des plus courts chemins entre toutes les paires de nœuds connectés :", lengths)
 
-# distribution des plus courts chemins
-plt.hist(lengths, bins=10, rwidth=0.8)
-plt.xlabel('Longueur des plus courts chemins')
-plt.ylabel('Nombre de paires de nœuds')
-plt.title('Histogramme des longueurs des plus courts chemins entre les paires de nœuds')
+axes[1, 1].hist(lengths, bins=10, rwidth=0.8)
+axes[1, 1].set_xlabel('Longueur des plus courts chemins')
+axes[1, 1].set_ylabel('Nombre de paires de nœuds')
+axes[1, 1].set_title('Histogramme des longueurs des plus courts chemins')
+
+plt.tight_layout()
 plt.show()
 
 
-# distrbution du nombre de plus courts chemins
-
-
-
-# # distrbution des plus courts chemins
-# path_lengths = dict(nx.all_pairs_shortest_path_length(G))
-# lengths = []
-# for source in path_lengths:
-#     for target in path_lengths[source]:
-#         if source != target:
-#             lengths.append(path_lengths[source][target])
-
-# plt.hist(lengths, bins=10, rwidth=0.8)
-# plt.xlabel('Longueur des plus courts chemins')
-# plt.ylabel('Nombre de paires de nœuds')
-# plt.title('Histogramme des longueurs des plus courts chemins entre les paires de nœuds')
-# plt.show()
-
-
-
-
-# distances = dict(nx.all_pairs_dijkstra_path_length(G, weight='weight'))
 
 
 
@@ -171,47 +95,34 @@ plt.show()
 
 
 # Partie 3:
-
-
 # creer un graphe pondéré par la distance euclidienne au carré entre les nœuds connectés pour un d_max de 60000
 
-fig = plt.figure() # Création de la figure
-
-ax = fig.add_subplot(111, projection='3d') # Création du subplot 3D
-
-pos = nx.get_node_attributes(G, 'pos') # Récupération des positions des nœuds
-
-# Nœuds
-xs = []
-ys = []
-zs = []
-for i in G.nodes():
-    xs.append(pos[i][0])
-    ys.append(pos[i][1])
-    zs.append(pos[i][2])
-
-ax.scatter(xs, ys, zs, color='red') # Tracé des nœuds
-
-# Arêtes
-for i, j in G.edges():
-    x = [pos[i][0], pos[j][0]]
-    y = [pos[i][1], pos[j][1]]
-    z = [pos[i][2], pos[j][2]]
-    ax.plot(x, y, z, color='blue') # Tracé des arêtes
-
-# pondération des arêtes par la distance euclidienne au carré
-for i, j in G.edges():
-    d = np.linalg.norm(G.nodes[i]['pos'] - G.nodes[j]['pos']) # Calcul de la distance euclidienne entre les nœuds i et j
-    d = d**2
-    G[i][j]['weight'] = d
+G_weighted = build_graph(positions, d_max, is_weighted=True)
 
 
+
+
+
+plot_graph_3d(G_weighted)
 plt.show() # Affichage du graphe 3D
 
 
+# recupération des métriques du graphe pondéré
+resultat_weighted = calcul_resultat(G_weighted, is_weighted=True)
 
 
 
+# longeur des chemins les plus courts entre toutes les paires de nœuds
+lengths_weighted = resultat_weighted['weighted_shortest_path_lengths']
+lengths_weighted = [float(length) for length in lengths_weighted]
+print("Longueurs des plus courts chemins entre toutes les paires de nœuds connectés du graphe pondéré :", lengths_weighted)
 
+
+# distribution des plus courts chemins
+plt.hist(lengths_weighted, bins=10, rwidth=0.8)
+plt.xlabel('Longueur des plus courts chemins')
+plt.ylabel('Nombre de paires de nœuds')
+plt.title('Histogramme des longueurs des plus courts chemins entre les paires de nœuds du graphe pondéré')
+plt.show()
 
 
